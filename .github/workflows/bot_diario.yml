@@ -1,16 +1,29 @@
-<!-- ... existing code ... -->
-# Este comando es MÁGICO: Crea un botón en GitHub para que lo puedas ejecutar manualmente cuando quieras
-  workflow_dispatch:
+name: Ejecutar Tracker Matutino FEBF
 
-# AÑADIMOS PERMISO PARA QUE EL BOT PUEDA CREAR LA PÁGINA WEB
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 5 * * 1-5'
+
 permissions:
   contents: write
 
 jobs:
   run-bot:
-    runs-on: ubuntu-latest # Usamos un servidor Linux gratuito de GitHub
-<!-- ... existing code ... -->
-    # 4. Ejecuta tu código abriendo tu "caja fuerte" para que funcione de forma segura
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Descargar el código
+      uses: actions/checkout@v4
+      
+    - name: Configurar Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: Instalar librerías
+      run: pip install yfinance requests
+        
     - name: Ejecutar el bot
       env:
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
@@ -18,7 +31,6 @@ jobs:
         FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
       run: python mercado_bot.py
 
-    # 5. Guardar la nueva web en GitHub automáticamente
     - name: Guardar Dashboard Web
       uses: stefanzweifel/git-auto-commit-action@v5
       with:

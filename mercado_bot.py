@@ -121,6 +121,21 @@ class InterpreteMercado:
     """Genera las explicaciones Profesionales y Generales (Doble Capa)."""
     
     @staticmethod
+    def generar_resumen_global(mercados):
+        """Analiza S&P500 y VIX para crear un resumen para todos los públicos."""
+        sp500_var = mercados.get("SP500", {}).get("variacion", 0) if "SP500" in mercados else 0
+        vix_var = mercados.get("VIX", {}).get("variacion", 0) if "VIX" in mercados else 0
+        
+        if sp500_var > 0.3 and vix_var < 0:
+            return "☀️ <b>DÍA SOLEADO:</b> Los inversores están optimistas hoy. Las bolsas apuntan a subidas y el 'índice del miedo' (VIX) está bajando. Hay apetito por comprar y el mercado está tranquilo."
+        elif sp500_var < -0.3 and vix_var > 2:
+            return "⛈️ <b>DÍA TORMENTOSO:</b> Hay nerviosismo general. Las bolsas caen y los inversores están comprando activos seguros para protegerse. Un día para tener precaución."
+        elif vix_var > 10:
+            return "⚠️ <b>ALERTA DE VOLATILIDAD:</b> Pánico a corto plazo. El mercado está asustado por noticias recientes y los precios se van a mover de forma muy brusca hoy."
+        else:
+            return "⛅ <b>DÍA TRANQUILO:</b> Movimientos moderados. Los grandes inversores están a la espera de nuevas noticias económicas sin tomar decisiones precipitadas."
+
+    @staticmethod
     def analizar_mercado(clave, datos):
         var = datos["variacion"]
         tendencia = "alcista" if var > 0 else "bajista"
@@ -208,6 +223,79 @@ class GestorTelegram:
         url = f"{self.url_base}/sendMessage"
         requests.post(url, json={"chat_id": self.chat_id, "text": texto, "parse_mode": "HTML"})
 
+def crear_pagina_web(mercados, macro, resumen, fecha):
+    """Genera un archivo HTML con un diseño moderno (Tailwind) usando los datos del día."""
+    html = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Financiero FEBF</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-slate-900 mb-2">Tracker Matutino de Mercados</h1>
+            <p class="text-slate-500">Actualizado: {fecha}</p>
+        </header>
+        
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-slate-200">
+            <h2 class="text-xl font-bold text-indigo-700 mb-3 flex items-center">📝 Resumen del Mercado</h2>
+            <p class="text-lg text-slate-700">{resumen.replace('<b>', '').replace('</b>', '')}</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h2 class="text-xl font-bold mb-4 border-b pb-2 text-slate-800">📈 Cotizaciones</h2>
+"""
+    for clave, datos in mercados.items():
+        signo = "+" if datos['variacion'] > 0 else ""
+        color = "text-green-600" if datos['variacion'] > 0 else "text-red-600"
+        if clave in ["US10Y", "VIX"]: color = "text-red-600" if datos['variacion'] > 0 else "text-green-600"
+        pro, gen = InterpreteMercado.analizar_mercado(clave, datos)
+        
+        html += f"""
+                <div class="mb-4 bg-white p-4 rounded-lg shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-bold text-slate-800">{datos['nombre']}</span>
+                        <span class="font-bold {color} bg-slate-50 px-2 py-1 rounded">{datos['precio']} ({signo}{datos['variacion']}{datos['unidad']})</span>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-2"><span class="font-bold text-slate-800">PRO:</span> {pro.replace('PRO: ', '')}</p>
+                    <p class="text-sm text-slate-500 italic"><span class="font-bold text-slate-700">GEN:</span> {gen.replace('GENERAL: ', '')}</p>
+                </div>"""
+                
+    html += """
+            </div>
+            <div>
+                <h2 class="text-xl font-bold mb-4 border-b pb-2 text-slate-800">🇺🇸 Datos Macro (FRED)</h2>
+"""
+    if macro:
+        for clave, datos in macro.items():
+            pro, gen = InterpreteMercado.analizar_macro(clave, datos)
+            html += f"""
+                <div class="mb-4 bg-white p-4 rounded-lg shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-bold text-slate-800">{datos['nombre']}</span>
+                        <span class="font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">{datos['valor']}%</span>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-2"><span class="font-bold text-slate-800">PRO:</span> {pro.replace('PRO: ', '')}</p>
+                    <p class="text-sm text-slate-500 italic"><span class="font-bold text-slate-700">GEN:</span> {gen.replace('GENERAL: ', '')}</p>
+                </div>"""
+    
+    html += f"""
+            </div>
+        </div>
+        <footer class="mt-12 text-center text-slate-400 text-sm">
+            Creado para la Fundación de Estudios Bursátiles y Financieros (FEBF)
+        </footer>
+    </div>
+</body>
+</html>"""
+    
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html)
+
 def generar_boletin():
     config = cargar_configuracion()
     telegram = GestorTelegram(config)
@@ -227,12 +315,20 @@ def generar_boletin():
     print("Conectando con la base de datos de la Reserva Federal...")
     macro = MacroDatos.obtener_datos(config["fred_api_key"])
     
-    # 3. Ensamblar el mensaje HTML
+    # 3. Ensamblar el mensaje HTML y la Web
     fecha_hoy = datetime.now().strftime("%d/%m/%Y")
+    
+    # Obtenemos el resumen global
+    resumen_global = InterpreteMercado.generar_resumen_global(mercados)
+    
+    # Creamos el archivo HTML de la página web
+    crear_pagina_web(mercados, macro, resumen_global, fecha_hoy)
+    
     mensaje = f"<b>📊 APERTURA DE MERCADOS | {fecha_hoy}</b>\n\n"
+    mensaje += f"{resumen_global}\n\n"
     
     # Bloque Mercados
-    mensaje += "<b>📈 DATOS DE COTIZACIÓN (YFinance)</b>\n"
+    mensaje += "<b>📈 DATOS DE COTIZACIÓN</b>\n"
     for clave, datos in mercados.items():
         signo = "+" if datos['variacion'] > 0 else ""
         emoji = "🔴" if datos['variacion'] < 0 else "🟢"
@@ -244,13 +340,15 @@ def generar_boletin():
         
     # Bloque Macro (Solo si la API está configurada)
     if macro:
-        mensaje += "<b>🇺🇸 AGENDA MACROECONÓMICA (Oficial FRED)</b>\n"
+        mensaje += "<b>🇺🇸 AGENDA MACROECONÓMICA</b>\n"
         for clave, datos in macro.items():
             pro, gen = InterpreteMercado.analizar_macro(clave, datos)
             mensaje += f"📌 <b>{datos['nombre']}</b>: {datos['valor']}%\n"
             mensaje += f"🏛️ <i>{pro}</i>\n💡 <i>{gen}</i>\n\n"
             
-    mensaje += "<i>Herramienta Analítica - FEBF Master</i>"
+    mensaje += "<i>Herramienta Analítica - FEBF Master</i>\n\n"
+    # Añadimos el enlace a tu futura web
+    mensaje += "🌐 <b>Ver Dashboard Web Completo:</b>\nhttps://aguarinosm.github.io/mercado_bot.py/"
     
     # 4. Enviar
     telegram.enviar_mensaje(mensaje)

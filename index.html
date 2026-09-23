@@ -1,16 +1,70 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Dashboard FEBF</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Financiero FEBF - 2026-09-23</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #1C2459; color: #ffffff; }
+        .bg-custom-blue { background-color: #1C2459; }
+        .bg-custom-yellow { background-color: #F5FF67; color: #1C2459; }
+    </style>
 </head>
-<body class="bg-slate-50 p-4 md:p-8 font-sans text-slate-800">
-    <div class="max-w-4xl mx-auto">
-        <header class="text-center mb-8"><h1 class="text-3xl font-bold">Tracker Matutino</h1><p>Actualizado: 23/09/2026</p></header>
-        <div class="bg-white p-6 rounded-xl shadow-sm mb-8 border border-slate-200">
-            <h2 class="text-xl font-bold text-indigo-700 mb-2">📝 Resumen "Para Dummies"</h2>
-            <p class="text-lg">⛅ DÍA TRANQUILO: Movimientos moderados. Los grandes inversores están a la espera de nuevas noticias sin tomar decisiones precipitadas.</p>
-        </div>
-        <div class="grid md:grid-cols-2 gap-6">
-            <div><h2 class="text-xl font-bold mb-4 border-b pb-2">📈 Mercados</h2>
-<div class='bg-white p-4 rounded-lg shadow-sm border mb-4'><div class='flex justify-between font-bold mb-2'><span>S&P 500 Futuros</span><span class='text-green-600'>7836.25 (0.06%)</span></div><p class='text-sm mb-1'><b>PRO:</b> Futuros en verde. Flujos de entrada.</p><p class='text-sm text-slate-500'><b>GEN:</b> Wall Street apunta al alza. Optimismo.</p></div><div class='bg-white p-4 rounded-lg shadow-sm border mb-4'><div class='flex justify-between font-bold mb-2'><span>Euro / Dólar</span><span class='text-red-600'>1.1416 (-0.43%)</span></div><p class='text-sm mb-1'><b>PRO:</b> Variación del -0.43%.</p><p class='text-sm text-slate-500'><b>GEN:</b> Movimiento del -0.43%.</p></div><div class='bg-white p-4 rounded-lg shadow-sm border mb-4'><div class='flex justify-between font-bold mb-2'><span>Petróleo Brent</span><span class='text-red-600'>95.48 (-3.8%)</span></div><p class='text-sm mb-1'><b>PRO:</b> Variación del -3.8%.</p><p class='text-sm text-slate-500'><b>GEN:</b> Movimiento del -3.8%.</p></div></div><div><h2 class='text-xl font-bold mb-4 border-b pb-2'>🇺🇸 Macro</h2><div class='bg-white p-4 rounded-lg shadow-sm border mb-4'><div class='flex justify-between font-bold mb-2'><span>Inflación Anual</span><span class='text-blue-600'>3.4%</span></div></div><div class='bg-white p-4 rounded-lg shadow-sm border mb-4'><div class='flex justify-between font-bold mb-2'><span>Tasa Desempleo</span><span class='text-blue-600'>4.1%</span></div></div></div></div></div></body></html>
+<body class="p-6 md:p-12">
+    <div class="max-w-4xl mx-auto space-y-8">
+        <header class="border-b border-indigo-800 pb-6">
+            <h1 class="text-3xl font-extrabold text-[#F5FF67]">Informe Bursátil Diario & Macro</h1>
+            <p class="text-indigo-200 mt-2">Edición Académica FEBF | Fecha: 2026-09-23</p>
+        </header>
+
+        <section class="bg-indigo-950 p-6 rounded-xl border border-indigo-800 shadow-lg space-y-4">
+            <h2 class="text-xl font-bold text-[#F5FF67]">1. Análisis de Contexto: La Maquinaria del Mercado</h2>
+            <p class="text-gray-300 leading-relaxed">
+                Los mercados financieros operan bajo la ley de las expectativas futuras. Hoy el foco principal recae sobre la interacción entre los tipos de interés de la Reserva Federal (FED) y la renta variable. Cuando el bono a 10 años se tensiona, los flujos institucionales abandonan activos de crecimiento y buscan refugio.
+            </p>
+        </section>
+
+        <section class="bg-indigo-950 p-6 rounded-xl border border-indigo-800 shadow-lg space-y-4">
+            <h2 class="text-xl font-bold text-[#F5FF67]">2. Indicadores Macro Clave</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div class="bg-indigo-900 p-4 rounded-lg">
+                    <div class="text-sm text-indigo-300">Inflación (IPC Anual)</div>
+                    <div class="text-2xl font-bold text-white">334.131%</div>
+                </div>
+                <div class="bg-indigo-900 p-4 rounded-lg">
+                    <div class="text-sm text-indigo-300">Tasa de Desempleo</div>
+                    <div class="text-2xl font-bold text-white">4.1%</div>
+                </div>
+                <div class="bg-indigo-900 p-4 rounded-lg">
+                    <div class="text-sm text-indigo-300">Crecimiento PIB</div>
+                    <div class="text-2xl font-bold text-white">1.5%</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-indigo-950 p-6 rounded-xl border border-indigo-800 shadow-lg space-y-4">
+            <h2 class="text-xl font-bold text-[#F5FF67]">3. Cotizaciones en Tiempo Real</h2>
+            <ul class="space-y-2">
+                <li class='flex justify-between border-b border-indigo-900 py-2'><span>S&P 500 Futuros</span> <span class='font-mono font-bold'>7821.0 (-0.14%)</span></li>
+                <li class='flex justify-between border-b border-indigo-900 py-2'><span>Nasdaq 100</span> <span class='font-mono font-bold'>30967.75 (-0.2%)</span></li>
+                <li class='flex justify-between border-b border-indigo-900 py-2'><span>Euro / Dólar</span> <span class='font-mono font-bold'>1.14 (-0.42%)</span></li>
+                <li class='flex justify-between border-b border-indigo-900 py-2'><span>Petróleo Brent</span> <span class='font-mono font-bold'>96.4 (-2.87%)</span></li>
+                <li class='flex justify-between border-b border-indigo-900 py-2'><span>Oro</span> <span class='font-mono font-bold'>4340.7 (-0.82%)</span></li>
+            </ul>
+        </section>
+
+        <section class="bg-[#F5FF67] text-[#1C2459] p-6 rounded-xl shadow-xl font-medium space-y-2">
+            <h2 class="text-2xl font-black uppercase tracking-wide">Resumen Ejecutivo (Para todos los públicos)</h2>
+            <p class="leading-relaxed">
+                El mercado hoy funciona como una gran balanza entre el miedo a la inflación y las decisiones de los Bancos Centrales. Si la economía va demasiado bien, los precios suben y los tipos de interés se mantienen altos, lo que enfría las bolsas. Este panel recopila los datos oficiales para entender de un vistazo si el dinero fluye con seguridad o si hay tormenta en el horizonte.
+            </p>
+        </section>
+
+        <footer class="text-xs text-indigo-300 border-t border-indigo-800 pt-6 space-y-2">
+            <p><strong>Fuentes oficiales:</strong> Los datos macroeconómicos se obtienen directamente de la Reserva Federal de St. Louis (FRED) y las cotizaciones de mercado proceden de Yahoo Finance.</p>
+            <p><strong>Aviso Legal (Disclaimer):</strong> Este documento tiene fines puramente académicos y educativos en el marco de la formación en la FEBF. No constituye asesoramiento financiero, recomendación de compraventa ni oferta de inversión. Los datos reflejan información histórica y de mercado sujeta a volatilidad.</p>
+        </footer>
+    </div>
+</body>
+</html>

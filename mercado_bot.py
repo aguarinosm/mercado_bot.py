@@ -323,11 +323,3 @@ def main():
 if __name__ == "__main__":
     main()
 ```
-
-### Cómo aplicarlo:
-1. Ve a GitHub, abre el archivo `mercado_bot.py` y dale al lápiz.
-2. Esta vez **no tienes que borrar todo el archivo**. Reemplaza solo la parte final del código (las funciones `crear_pagina_web` y `main`) por las que te acabo de poner arriba para insertar el pie de página oscuro y la nota de Telegram. (O, si lo prefieres, cópialo entero desde la pestaña "Market Tracker" de la derecha, que ya se ha actualizado automáticamente con estos cambios).
-3. Dale a **Commit changes**.
-4. ¡Ve a **Actions**, ejecútalo y comprueba tu web y tu chat! 
-
-Con esto, tu proyecto es 100% legal, estéticamente impactante y listo para enseñárselo a cualquier profesor o profesional del sector. ¿Pudiste abrir la web y ver los colores?

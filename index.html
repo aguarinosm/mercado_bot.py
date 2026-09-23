@@ -3,67 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Financiero FEBF - 2026-09-23</title>
+    <title>Terminal Macro-Financiero | 23-09-2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #1C2459; color: #ffffff; }
-        .bg-custom-blue { background-color: #1C2459; }
+        body { background-color: #1C2459; color: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
         .bg-custom-yellow { background-color: #F5FF67; color: #1C2459; }
     </style>
 </head>
-<body class="p-6 md:p-12">
-    <div class="max-w-4xl mx-auto space-y-8">
-        <header class="border-b border-indigo-800 pb-6">
-            <h1 class="text-3xl font-extrabold text-[#F5FF67]">Informe Bursátil Diario & Macro</h1>
-            <p class="text-indigo-200 mt-2">Edición Académica FEBF | Fecha: 2026-09-23</p>
+<body class="p-4 md:p-8">
+    <div class="max-w-5xl mx-auto space-y-8">
+        <!-- CABECERA -->
+        <header class="border-b border-indigo-800 pb-4">
+            <h1 class="text-4xl font-extrabold text-[#F5FF67]">Briefing de Mercados</h1>
+            <p class="text-indigo-300 mt-2 text-sm uppercase tracking-wider">Despliegue Analítico • Fecha: 23-09-2026</p>
         </header>
 
-        <section class="bg-indigo-950 p-6 rounded-xl border border-indigo-800 shadow-lg space-y-4">
-            <h2 class="text-xl font-bold text-[#F5FF67]">1. Análisis de Contexto: La Maquinaria del Mercado</h2>
-            <p class="text-gray-300 leading-relaxed">
-                Los mercados financieros operan bajo la ley de las expectativas futuras. Hoy el foco principal recae sobre la interacción entre los tipos de interés de la Reserva Federal (FED) y la renta variable. Cuando el bono a 10 años se tensiona, los flujos institucionales abandonan activos de crecimiento y buscan refugio.
+        <!-- BLOQUE 1: RESUMEN DUMMIES (AMARILLO GIGANTE) -->
+        <section class="bg-custom-yellow p-6 md:p-8 rounded-2xl shadow-xl space-y-3 border-4 border-[#F5FF67]">
+            <h2 class="text-2xl font-black uppercase tracking-wide">El mercado en 1 minuto</h2>
+            <p class="text-lg font-medium leading-relaxed">
+                Día de navegación tranquila. La economía crece a buen ritmo pero sin sobrecalentarse, y la inflación parece controlada. Esto es como ir en barco con el viento a favor: las empresas pueden planificar su futuro y los inversores compran acciones con confianza.
             </p>
         </section>
 
-        <section class="bg-indigo-950 p-6 rounded-xl border border-indigo-800 shadow-lg space-y-4">
-            <h2 class="text-xl font-bold text-[#F5FF67]">2. Indicadores Macro Clave</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                <div class="bg-indigo-900 p-4 rounded-lg">
-                    <div class="text-sm text-indigo-300">Inflación (IPC Anual)</div>
-                    <div class="text-2xl font-bold text-white">334.131%</div>
+        <!-- BLOQUE 2: MONITOR MACRO -->
+        <section class="bg-indigo-950 p-6 md:p-8 rounded-2xl border border-indigo-800 shadow-lg space-y-6">
+            <h2 class="text-2xl font-bold text-[#F5FF67]">Monitor Macro & FED</h2>
+            <p class="text-indigo-100 leading-relaxed text-lg">
+                <strong>Análisis Institucional:</strong> Entorno macroeconómico acomodaticio o asimilado por el consenso. La lectura de inflación (334.131) y un mercado laboral estabilizado permiten que los índices directores extiendan su estructura técnica, con el bono a 10 años estabilizado en 0%.
+            </p>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                <div class="bg-[#1C2459] p-4 rounded-xl border border-indigo-800 text-center">
+                    <div class="text-xs text-indigo-400 uppercase tracking-widest mb-1">Tipos FED</div>
+                    <div class="text-3xl font-bold">3.63%</div>
                 </div>
-                <div class="bg-indigo-900 p-4 rounded-lg">
-                    <div class="text-sm text-indigo-300">Tasa de Desempleo</div>
-                    <div class="text-2xl font-bold text-white">4.1%</div>
+                <div class="bg-[#1C2459] p-4 rounded-xl border border-indigo-800 text-center">
+                    <div class="text-xs text-indigo-400 uppercase tracking-widest mb-1">Inflación</div>
+                    <div class="text-3xl font-bold">334.131%</div>
                 </div>
-                <div class="bg-indigo-900 p-4 rounded-lg">
-                    <div class="text-sm text-indigo-300">Crecimiento PIB</div>
-                    <div class="text-2xl font-bold text-white">1.5%</div>
+                <div class="bg-[#1C2459] p-4 rounded-xl border border-indigo-800 text-center">
+                    <div class="text-xs text-indigo-400 uppercase tracking-widest mb-1">Desempleo</div>
+                    <div class="text-3xl font-bold">4.1%</div>
+                </div>
+                <div class="bg-[#1C2459] p-4 rounded-xl border border-indigo-800 text-center">
+                    <div class="text-xs text-indigo-400 uppercase tracking-widest mb-1">Var. PIB</div>
+                    <div class="text-3xl font-bold">1.5%</div>
                 </div>
             </div>
         </section>
 
-        <section class="bg-indigo-950 p-6 rounded-xl border border-indigo-800 shadow-lg space-y-4">
-            <h2 class="text-xl font-bold text-[#F5FF67]">3. Cotizaciones en Tiempo Real</h2>
-            <ul class="space-y-2">
-                <li class='flex justify-between border-b border-indigo-900 py-2'><span>S&P 500 Futuros</span> <span class='font-mono font-bold'>7821.0 (-0.14%)</span></li>
-                <li class='flex justify-between border-b border-indigo-900 py-2'><span>Nasdaq 100</span> <span class='font-mono font-bold'>30967.75 (-0.2%)</span></li>
-                <li class='flex justify-between border-b border-indigo-900 py-2'><span>Euro / Dólar</span> <span class='font-mono font-bold'>1.14 (-0.42%)</span></li>
-                <li class='flex justify-between border-b border-indigo-900 py-2'><span>Petróleo Brent</span> <span class='font-mono font-bold'>96.4 (-2.87%)</span></li>
-                <li class='flex justify-between border-b border-indigo-900 py-2'><span>Oro</span> <span class='font-mono font-bold'>4340.7 (-0.82%)</span></li>
+        <!-- BLOQUE 3: PANEL DE COTIZACIONES -->
+        <section class="bg-indigo-950 p-6 md:p-8 rounded-2xl border border-indigo-800 shadow-lg space-y-4">
+            <h2 class="text-2xl font-bold text-[#F5FF67]">Cierre de Activos Clave</h2>
+            <ul class="space-y-1 mt-4">
+                
+        <li class='flex justify-between border-b border-indigo-900 py-3 items-center'>
+            <span class='font-semibold'>S&P 500</span> 
+            <span class='font-mono text-red-400'>7806.75 (-0.32%)</span>
+        </li>
+        
+        <li class='flex justify-between border-b border-indigo-900 py-3 items-center'>
+            <span class='font-semibold'>Nasdaq 100</span> 
+            <span class='font-mono text-red-400'>30863.0 (-0.53%)</span>
+        </li>
+        
+        <li class='flex justify-between border-b border-indigo-900 py-3 items-center'>
+            <span class='font-semibold'>Russell 2000</span> 
+            <span class='font-mono text-red-400'>2881.3 (-1.13%)</span>
+        </li>
+        
+        <li class='flex justify-between border-b border-indigo-900 py-3 items-center'>
+            <span class='font-semibold'>Bono EE.UU. 2 Años</span> 
+            <span class='font-mono text-red-400'>101.78 (-0.31%)</span>
+        </li>
+        
+        <li class='flex justify-between border-b border-indigo-900 py-3 items-center'>
+            <span class='font-semibold'>EUR / USD</span> 
+            <span class='font-mono text-red-400'>1.14 (-0.56%)</span>
+        </li>
+        
+        <li class='flex justify-between border-b border-indigo-900 py-3 items-center'>
+            <span class='font-semibold'>Petróleo Brent</span> 
+            <span class='font-mono text-red-400'>97.16 (-2.11%)</span>
+        </li>
+        
+        <li class='flex justify-between border-b border-indigo-900 py-3 items-center'>
+            <span class='font-semibold'>Oro</span> 
+            <span class='font-mono text-red-400'>4319.5 (-1.3%)</span>
+        </li>
+        
+        <li class='flex justify-between border-b border-indigo-900 py-3 items-center'>
+            <span class='font-semibold'>Bitcoin</span> 
+            <span class='font-mono text-red-400'>85767.64 (-0.47%)</span>
+        </li>
+        
             </ul>
         </section>
 
-        <section class="bg-[#F5FF67] text-[#1C2459] p-6 rounded-xl shadow-xl font-medium space-y-2">
-            <h2 class="text-2xl font-black uppercase tracking-wide">Resumen Ejecutivo (Para todos los públicos)</h2>
-            <p class="leading-relaxed">
-                El mercado hoy funciona como una gran balanza entre el miedo a la inflación y las decisiones de los Bancos Centrales. Si la economía va demasiado bien, los precios suben y los tipos de interés se mantienen altos, lo que enfría las bolsas. Este panel recopila los datos oficiales para entender de un vistazo si el dinero fluye con seguridad o si hay tormenta en el horizonte.
-            </p>
-        </section>
-
-        <footer class="text-xs text-indigo-300 border-t border-indigo-800 pt-6 space-y-2">
-            <p><strong>Fuentes oficiales:</strong> Los datos macroeconómicos se obtienen directamente de la Reserva Federal de St. Louis (FRED) y las cotizaciones de mercado proceden de Yahoo Finance.</p>
-            <p><strong>Aviso Legal (Disclaimer):</strong> Este documento tiene fines puramente académicos y educativos en el marco de la formación en la FEBF. No constituye asesoramiento financiero, recomendación de compraventa ni oferta de inversión. Los datos reflejan información histórica y de mercado sujeta a volatilidad.</p>
+        <!-- BLOQUE 4: DISCLAIMER LEGAL -->
+        <footer class="bg-indigo-950 p-6 rounded-2xl text-xs text-indigo-300 border border-indigo-800 space-y-3 mt-12 shadow-inner">
+            <p class="uppercase tracking-widest font-bold text-indigo-400">Fuentes y Responsabilidad Legal</p>
+            <p><strong>Orígenes de Datos:</strong> Fundamentales macroeconómicos extraídos en tiempo real vía Federal Reserve Economic Data (FRED) del Banco de la Reserva Federal de St. Louis. Variaciones de activos bursátiles obtenidas a través de la API de Yahoo Finance.</p>
+            <p><strong>Aviso Legal (Disclaimer):</strong> El presente terminal y las comunicaciones derivadas son de carácter estrictamente educativo y académico. En ningún caso constituyen una recomendación de inversión, oferta de compraventa de instrumentos financieros, ni asesoramiento fiscal o patrimonial. El análisis se realiza basándose en datos históricos y coyunturales sometidos a alta volatilidad. Las decisiones de inversión basadas en este cuadro de mandos son responsabilidad exclusiva del usuario final.</p>
         </footer>
     </div>
 </body>

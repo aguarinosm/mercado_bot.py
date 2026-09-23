@@ -7,10 +7,12 @@ from datetime import datetime
 CONFIG_FILE = "config_bot.json"
 
 def cargar_configuracion():
+    """Carga los tokens desde los secretos de GitHub (Variables de Entorno)."""
     token = os.environ.get("TELEGRAM_TOKEN", "")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
     fred_key = os.environ.get("FRED_API_KEY", "")
 
+    # Mantenemos un archivo local por si se quiere expandir con comandos de pausa en el futuro
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, 'r') as f:
             config = json.load(f)
@@ -23,13 +25,8 @@ def cargar_configuracion():
             "telegram_bot_token": token, 
             "telegram_chat_id": chat_id,      
             "fred_api_key": fred_key,
-            "activo": True,
-            "ultimo_update_id": 0
+            "activo": True
         }
-
-def guardar_configuracion(config):
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(config, f, indent=4)
 
 class MercadoDatos:
     TICKERS = {
@@ -42,6 +39,7 @@ class MercadoDatos:
 
     @staticmethod
     def obtener_metricas():
+        """Extrae cotizaciones en tiempo real usando yfinance."""
         resultados = {}
         for clave, info in MercadoDatos.TICKERS.items():
             try:
@@ -50,6 +48,8 @@ class MercadoDatos:
                 if len(hist) >= 2:
                     cierre_ayer = hist['Close'].iloc[-2]
                     precio_actual = hist['Close'].iloc[-1]
+                    
+                    # Ajuste matemático para el Bono a 10 años
                     if clave == "US10Y":
                         cierre_ayer = cierre_ayer / 10
                         precio_actual = precio_actual / 10
@@ -66,224 +66,207 @@ class MercadoDatos:
                         "unidad": unidad
                     }
             except Exception as e:
-                pass
+                resultados[clave] = {"nombre": info["nombre"], "precio": 0, "variacion": 0, "unidad": ""}
         return resultados
 
 class MacroDatos:
     SERIES = {
-        "INFLACION": {"id": "CPIAUCSL", "nombre": "Inflación Anual"},
-        "DESEMPLEO": {"id": "UNRATE", "nombre": "Tasa Desempleo"}
+        "INFLACION": {"id": "CPIAUCSL", "nombre": "Inflación Anual (IPC)"},
+        "DESEMPLEO": {"id": "UNRATE", "nombre": "Tasa Desempleo"},
+        "PIB": {"id": "A191RL1Q225SBEA", "nombre": "Crecimiento PIB (Trimestral)"}
     }
 
     @staticmethod
     def obtener_datos(api_key):
-        if not api_key: return {}
+        """Se conecta a la base de datos oficial de la Reserva Federal (FRED)."""
+        if not api_key: 
+            return {}
+        
         resultados = {}
         for clave, info in MacroDatos.SERIES.items():
             url = f"https://api.stlouisfed.org/fred/series/observations?series_id={info['id']}&api_key={api_key}&file_type=json&sort_order=desc&limit=1"
             try:
                 resp = requests.get(url).json()
                 valor = float(resp['observations'][0]['value'])
+                fecha = resp['observations'][0]['date']
+                
+                # Para la inflación, calculamos la variación interanual aproximada
                 if clave == "INFLACION":
                     url_pasado = f"https://api.stlouisfed.org/fred/series/observations?series_id={info['id']}&api_key={api_key}&file_type=json&sort_order=desc&limit=13"
                     resp_pasado = requests.get(url_pasado).json()
                     valor_pasado = float(resp_pasado['observations'][12]['value'])
                     valor = round(((valor - valor_pasado) / valor_pasado) * 100, 1)
-                resultados[clave] = {"nombre": info["nombre"], "valor": valor}
-            except:
-                pass
+                    
+                resultados[clave] = {"nombre": info["nombre"], "valor": valor, "fecha": fecha}
+            except Exception as e:
+                resultados[clave] = {"nombre": info["nombre"], "valor": "N/A", "fecha": "N/A"}
         return resultados
 
 class InterpreteMercado:
     @staticmethod
-    def generar_resumen_global(mercados):
+    def generar_analisis_telegram(mercados, macro):
+        """Genera el texto principal e informativo para el chat de Telegram."""
         sp500 = mercados.get("SP500", {}).get("variacion", 0)
         vix = mercados.get("VIX", {}).get("variacion", 0)
-        
-        if sp500 > 0.3 and vix < 0:
-            return "☀️ <b>DÍA SOLEADO:</b> Optimismo en las mesas de inversión. Los índices apuntan al alza y el VIX se comprime, indicando apetito por riesgo."
-        elif sp500 < -0.3 and vix > 2:
-            return "⛈️ <b>DÍA TORMENTOSO:</b> Aversión al riesgo generalizada. Las bolsas corrigen y los inversores buscan cobertura, disparando el índice del miedo."
-        elif vix > 10:
-            return "⚠️ <b>ALERTA DE VOLATILIDAD:</b> Pánico a corto plazo. Expectativa de movimientos bruscos debido a eventos macroeconómicos o geopolíticos."
-        else:
-            return "⛅ <b>DÍA TRANQUILO:</b> Consolidación de niveles. Sesión de transición sin catalizadores claros, a la espera de nuevos datos macro."
-
-    @staticmethod
-    def generar_analisis_profesional(mercados, macro):
+        bono = mercados.get("US10Y", {}).get("precio", 0)
         inflacion = macro.get("INFLACION", {}).get("valor", "N/A")
-        bono = mercados.get("US10Y", {}).get("precio", "N/A")
         
-        texto = "<b>🔬 ANÁLISIS MACRO (PROFESIONAL)</b>\n"
-        texto += f"El mercado descuenta un escenario complejo. Con la inflación en el {inflacion}%, la Reserva Federal mantiene un tono vigilante. "
-        texto += f"El tramo largo de la curva curva, reflejado en el T-Note a 10 años situándose en el {bono}%, presiona el <i>equity risk premium</i>. "
-        texto += "Vigilamos de cerca los flujos hacia activos de protección ante posibles disrupciones en la liquidez."
-        return texto
+        texto_profesional = "<b>🏛️ ANÁLISIS MACROECONÓMICO (PROFESIONAL)</b>\n"
+        texto_dummies = "<b>💡 TRADUCCIÓN PARA TODOS LOS PÚBLICOS</b>\n"
 
-    @staticmethod
-    def generar_analisis_dummies():
-        return """<b>💡 TRADUCCIÓN PARA DUMMIES</b>
-Imagina que la economía es un gran barco. La <b>Reserva Federal</b> (el banco central) es el capitán. Si el barco va demasiado rápido y los motores se calientan (inflación alta), el capitán frena subiendo los <b>tipos de interés</b>. Cuando esto pasa, los préstamos para empresas y familias son más caros, lo que suele hacer que la bolsa baje porque hay menos dinero circulando para invertir."""
-
-    @staticmethod
-    def analizar_mercado(clave, datos):
-        var = datos["variacion"]
-        alcista = var > 0
-        if clave == "US10Y":
-            pro = "Repunte de yields. Ampliación del descuento de flujos (DCF)." if alcista else "Compresión de tires. Alivio en la tasa de descuento."
-            gen = "Sube el interés de la deuda. Encarece préstamos." if alcista else "Cae el interés de la deuda. Dinero más barato."
-        elif clave == "SP500":
-            pro = "Futuros en verde. Flujos de entrada." if alcista else "Futuros en rojo. Presión vendedora."
-            gen = "Wall Street apunta al alza. Optimismo." if alcista else "Wall Street apunta a caídas. Predominan las ventas."
+        if sp500 > 0 and bono < 4.5:
+            texto_profesional += f"Sesión marcada por el apetito por el riesgo (Risk-On). Los futuros del S&P apuntan al alza impulsados por una estabilización en la renta fija. Con el T-Note a 10 años en el {bono}%, la presión sobre el coste de capital disminuye, permitiendo una expansión de múltiplos. El mercado asimila una inflación del {inflacion}% esperando posturas monetarias menos restrictivas por parte de los Bancos Centrales.\n"
+            texto_dummies += "Hoy es un buen día en los mercados. Como los intereses que cobran los bancos por prestar dinero están estables, las empresas pueden financiarse de forma barata. Esto anima a los inversores a comprar acciones. La inflación parece estar controlada, por lo que no hay pánico a corto plazo.\n"
+        elif sp500 < 0 and bono > 4.5:
+            texto_profesional += f"Sesión correctiva dominada por la aversión al riesgo (Risk-Off). El repunte del T-Note hasta el {bono}% endurece las condiciones financieras, impactando negativamente en la valoración por flujos de caja descontados (DCF), especialmente en *Growth*. La inflación anclada en {inflacion}% reduce el margen de maniobra de la FED para inyectar liquidez.\n"
+            texto_dummies += "Día de caídas en bolsa. Los tipos de interés de la deuda pública están subiendo, lo que significa que el dinero se vuelve más caro. Los inversores prefieren vender sus acciones, que tienen más riesgo, y guardar el dinero en bonos del Estado que pagan buenos intereses de forma segura.\n"
         else:
-            pro = f"Variación direccional del {var}{datos['unidad']}."
-            gen = f"Movimiento del {var}{datos['unidad']}."
-        return pro, gen
+            texto_profesional += f"Jornada de consolidación y rebalanceo de carteras. Volatilidad contenida con el VIX variando un {vix}%. Los operadores mantienen cautela a la espera de nuevos catalizadores macroeconómicos que definan la senda de tipos de la FED frente a una inflación del {inflacion}%.\n"
+            texto_dummies += "Día tranquilo en Wall Street. No hay noticias lo suficientemente fuertes como para provocar grandes subidas o bajadas. Los grandes inversores están esperando a que el gobierno publique nuevos datos sobre empleo o precios antes de tomar decisiones importantes con su dinero.\n"
 
-def crear_pagina_web(mercados, macro, resumen, fecha):
+        return texto_profesional, texto_dummies
+
+def crear_pagina_web(mercados, macro, fecha):
+    """Crea un archivo HTML interactivo, profesional y extenso con Disclaimer."""
+    
     html = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Informe FEBF - Tracker Diario</title>
+    <title>Dashboard FEBF - Mercado y Macro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .febf-blue {{ background-color: #1C2459; }}
-        .febf-blue-text {{ color: #1C2459; }}
-        .febf-yellow {{ background-color: #F5FF67; }}
-        .febf-yellow-text {{ color: #D1DB2A; }} /* Tono más oscuro para contraste en texto */
-        body {{ font-family: system-ui, -apple-system, sans-serif; background-color: #f4f4f5; }}
+        .bg-febf-blue {{ background-color: #1C2459; }}
+        .text-febf-blue {{ color: #1C2459; }}
+        .bg-febf-yellow {{ background-color: #F5FF67; }}
+        .text-febf-yellow {{ color: #D1DB2A; }}
+        .border-febf-yellow {{ border-color: #F5FF67; }}
+        body {{ font-family: system-ui, -apple-system, sans-serif; background-color: #f8fafc; }}
     </style>
 </head>
-<body class="text-slate-800">
+<body class="text-slate-800 antialiased">
     
-    <!-- Hero Header -->
-    <header class="febf-blue text-white py-12 px-6 shadow-lg">
-        <div class="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center">
+    <!-- Cabecera -->
+    <header class="bg-febf-blue text-white py-12 px-6 shadow-xl border-b-4 border-febf-yellow">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
             <div>
-                <h1 class="text-4xl font-extrabold tracking-tight mb-2">Monitor de Mercados FEBF</h1>
-                <p class="text-lg opacity-90 font-light">Análisis Diario Cuantitativo y Fundamental</p>
+                <h1 class="text-4xl font-extrabold tracking-tight mb-2">Monitor Institucional de Mercados</h1>
+                <p class="text-lg opacity-90 font-light">Análisis Cuantitativo y Entorno Macroeconómico - FEBF</p>
             </div>
-            <div class="mt-6 md:mt-0 bg-white/10 px-4 py-2 rounded-lg border border-white/20">
-                <span class="font-mono text-sm tracking-widest uppercase opacity-80">Fecha de Reporte</span>
-                <p class="text-xl font-bold febf-yellow-text">{fecha}</p>
+            <div class="mt-6 md:mt-0 bg-white/10 px-5 py-3 rounded-lg border border-white/20 text-center">
+                <span class="font-mono text-sm tracking-widest uppercase opacity-80 block">Fecha del Reporte</span>
+                <span class="text-2xl font-bold text-febf-yellow">{fecha}</span>
             </div>
         </div>
     </header>
 
-    <main class="max-w-5xl mx-auto p-6 mt-8 space-y-10">
+    <main class="max-w-6xl mx-auto p-6 mt-8 space-y-10">
 
-        <!-- Termómetro Diario -->
-        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-            <h2 class="text-2xl font-bold febf-blue-text mb-4 border-b pb-2">El Termómetro de Hoy</h2>
-            <p class="text-lg leading-relaxed text-slate-700">{resumen.replace('<b>', '').replace('</b>', '')}</p>
-        </section>
-
-        <!-- Análisis Profundo de Factores Clave -->
-        <section class="grid md:grid-cols-2 gap-8">
-            
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-                <h3 class="text-xl font-bold febf-blue-text mb-4 flex items-center gap-2">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Contexto Macroeconómico (FED)
-                </h3>
-                <p class="text-slate-600 mb-4">El mercado vigila obsesivamente a la Reserva Federal y al Banco Central Europeo. Sus decisiones sobre el coste del dinero determinan la liquidez global.</p>
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100">
-                        <span class="font-semibold text-slate-700">Inflación (IPC):</span>
-                        <span class="text-lg font-mono font-bold febf-blue-text">{macro.get("INFLACION", {}).get("valor", "N/A")}%</span>
+        <!-- Explicación Extensa de Factores Condicionantes -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="bg-slate-50 border-b border-slate-200 p-6">
+                <h2 class="text-2xl font-bold text-febf-blue flex items-center gap-2">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
+                    El Motor de la Economía: Condicionantes de Hoy
+                </h2>
+            </div>
+            <div class="p-8 space-y-6">
+                <p class="text-lg leading-relaxed text-slate-700">El comportamiento de las bolsas mundiales no es aleatorio; es una respuesta matemática a las condiciones de liquidez. Actualmente, el mercado está condicionado por las siguientes dinámicas institucionales:</p>
+                
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Bloque FED -->
+                    <div class="p-6 bg-slate-50 rounded-xl border border-slate-100">
+                        <h3 class="text-xl font-bold text-slate-800 mb-3">🏦 La Reserva Federal (FED) y los Tipos</h3>
+                        <p class="text-slate-600 leading-relaxed text-justify">
+                            La FED actúa como el "banco de los bancos". Cuando la inflación es alta, la FED sube los <b>Tipos de Interés</b> (el precio del dinero). Esto encarece los préstamos para empresas (frenando su crecimiento) y para las familias (frenando el consumo). El mercado vigila obsesivamente cada discurso de su presidente, Jerome Powell, buscando pistas. Si insinúan que los tipos seguirán altos, el dinero huye de la bolsa hacia activos más seguros.
+                        </p>
                     </div>
-                    <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100">
-                        <span class="font-semibold text-slate-700">Tasa de Desempleo:</span>
-                        <span class="text-lg font-mono font-bold febf-blue-text">{macro.get("DESEMPLEO", {}).get("valor", "N/A")}%</span>
+                    
+                    <!-- Bloque Empleo e Inflación -->
+                    <div class="p-6 bg-slate-50 rounded-xl border border-slate-100">
+                        <h3 class="text-xl font-bold text-slate-800 mb-3">📉 Empleo, Inflación y Crecimiento</h3>
+                        <p class="text-slate-600 leading-relaxed text-justify">
+                            Irónicamente, para el mercado financiero, <i>"las buenas noticias a veces son malas noticias"</i>. Si el dato de <b>Tasa de Desempleo ({macro.get('DESEMPLEO', {{}}).get('valor', 'N/A')}%)</b> es muy bajo, significa que la economía está fuerte. Sin embargo, una economía demasiado fuerte puede provocar más <b>Inflación ({macro.get('INFLACION', {{}}).get('valor', 'N/A')}%)</b>, lo que obligaría a la FED a subir más los tipos, asustando a los inversores. Por ello, el mercado busca un equilibrio perfecto: una economía que crezca, pero sin calentarse.
+                        </p>
                     </div>
                 </div>
             </div>
+        </section>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-                <h3 class="text-xl font-bold febf-blue-text mb-4 flex items-center gap-2">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                    Cotizaciones en Directo
-                </h3>
-                <div class="space-y-3">
+        <!-- Tarjetas de Cotización en Directo -->
+        <section>
+            <h2 class="text-2xl font-bold text-febf-blue mb-6">Radiografía de Activos en Directo</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 """
     for c, d in mercados.items():
         es_positivo = d['variacion'] > 0
-        if c in ["US10Y", "VIX"]: es_positivo = not es_positivo # Invertir lógica para bonos y VIX
-        color_badge = "bg-green-100 text-green-800 border-green-200" if es_positivo else "bg-red-100 text-red-800 border-red-200"
+        if c in ["US10Y", "VIX"]: es_positivo = not es_positivo # Invertimos lógica para bonos y VIX
+        color_bg = "bg-emerald-50 border-emerald-200" if es_positivo else "bg-rose-50 border-rose-200"
+        color_txt = "text-emerald-700" if es_positivo else "text-rose-700"
+        icono = "📈" if d['variacion'] > 0 else "📉"
         
         html += f"""
-                    <div class="flex justify-between items-center p-3 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
-                        <span class="font-medium text-slate-800">{d['nombre']}</span>
-                        <div class="flex items-center gap-3">
-                            <span class="font-mono text-slate-600">{d['precio']}</span>
-                            <span class="px-2 py-1 rounded text-sm font-bold border {color_badge}">
-                                {d['variacion']}{d['unidad']}
-                            </span>
-                        </div>
-                    </div>"""
+                <div class="bg-white rounded-xl shadow-sm border p-6 flex flex-col hover:shadow-md transition-shadow">
+                    <span class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-1">{c}</span>
+                    <span class="text-xl font-bold text-slate-800 mb-4">{d['nombre']}</span>
+                    <div class="mt-auto flex justify-between items-end">
+                        <span class="text-3xl font-mono font-bold text-febf-blue">{d['precio']}</span>
+                        <span class="font-semibold text-lg {color_bg} {color_txt} border px-2 py-1 rounded">
+                            {icono} {d['variacion']}{d['unidad']}
+                        </span>
+                    </div>
+                </div>
+"""
     
     html += """
-                </div>
             </div>
         </section>
 
-        <!-- Conclusión Resumida (Dummies) -->
-        <section class="febf-yellow rounded-2xl shadow-md border border-yellow-400/50 p-8 relative overflow-hidden">
-            <div class="relative z-10">
-                <h2 class="text-2xl font-extrabold text-slate-900 mb-3 flex items-center gap-2">
-                    <span>💡</span> ¿Qué significa todo esto? (Resumen Ejecutivo)
+        <!-- Conclusión Resumida Gigante -->
+        <section class="bg-febf-yellow rounded-2xl shadow-lg border border-yellow-400 p-8 md:p-12 relative overflow-hidden">
+            <div class="relative z-10 max-w-4xl mx-auto text-center">
+                <span class="bg-slate-900 text-white text-sm font-bold uppercase tracking-widest py-1 px-3 rounded-full mb-6 inline-block">Resumen del Día</span>
+                <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-6 leading-tight">
+                    ¿Qué significa todo esto para mí?
                 </h2>
-                <p class="text-lg text-slate-800 font-medium leading-relaxed">
-                    Si eres un inversor a largo plazo, el dato más importante de hoy es la relación entre los <b>Tipos de Interés</b> y la <b>Inflación</b>. 
-                    Cuando los precios suben rápido (inflación), los bancos centrales encarecen los préstamos para enfriar la economía. 
-                    Esto hace que las empresas ganen menos dinero y la bolsa sufra. Hoy, la bolsa se mueve reaccionando a las pistas que indican 
-                    si el dinero será más barato o más caro en los próximos meses.
+                <p class="text-xl md:text-2xl text-slate-800 font-medium leading-relaxed">
+                    Si eres un inversor, lo único que debes recordar hoy es que <b>el coste de financiación y la inflación dirigen el barco</b>. 
+                    Mientas la inflación se mantenga bajo control, los bancos centrales no subirán agresivamente los intereses. 
+                    Esto hace que las empresas sigan ganando dinero y que mantener tu capital invertido en acciones globales siga siendo la mejor defensa contra la pérdida de poder adquisitivo a largo plazo.
                 </p>
-            </div>
-            <!-- Decoración gráfica -->
-            <div class="absolute -right-10 -bottom-10 opacity-10">
-                <svg class="w-64 h-64 febf-blue-text" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
             </div>
         </section>
 
     </main>
 
-    <footer class="bg-slate-900 text-slate-400 py-10 px-6 mt-12 text-sm shadow-inner">
-        <div class="max-w-5xl mx-auto space-y-6">
-            
-            <div class="border-b border-slate-700 pb-6 mb-2">
-                <p class="font-bold text-slate-300 mb-2 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Fuentes de Información
-                </p>
-                <ul class="list-disc list-inside space-y-1 text-slate-400">
-                    <li>Cotizaciones de mercado: <a href="https://finance.yahoo.com/" target="_blank" class="underline hover:text-white transition-colors">Yahoo Finance API</a> (los datos pueden presentar retraso).</li>
-                    <li>Datos macroeconómicos oficiales: <a href="https://fred.stlouisfed.org/" target="_blank" class="underline hover:text-white transition-colors">Federal Reserve Economic Data (FRED)</a>, Banco de la Reserva Federal de St. Louis.</li>
+    <!-- Footer Profesional y Disclaimer -->
+    <footer class="bg-slate-900 text-slate-400 py-12 px-6 mt-16 text-sm">
+        <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-10">
+            <div>
+                <h4 class="text-white font-bold text-lg mb-4 uppercase tracking-wider">Fuentes de Datos Oficiales</h4>
+                <ul class="space-y-2">
+                    <li class="flex items-center gap-2"><svg class="w-4 h-4 text-febf-yellow" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> 
+                        Datos Macroeconómicos: <a href="https://fred.stlouisfed.org/" target="_blank" class="underline hover:text-white transition">FRED (Federal Reserve Bank of St. Louis)</a>
+                    </li>
+                    <li class="flex items-center gap-2"><svg class="w-4 h-4 text-febf-yellow" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> 
+                        Cotizaciones de Mercado: <a href="https://finance.yahoo.com/" target="_blank" class="underline hover:text-white transition">Yahoo Finance API</a> (Puede existir retraso).
+                    </li>
                 </ul>
             </div>
-
             <div>
-                <p class="font-bold text-slate-300 mb-2 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
-                    Aviso Legal (Disclaimer)
-                </p>
+                <h4 class="text-white font-bold text-lg mb-4 uppercase tracking-wider">Aviso Legal (Disclaimer)</h4>
                 <p class="text-xs leading-relaxed text-slate-500 text-justify">
-                    Este panel de control y el bot de Telegram asociado son un proyecto estrictamente académico. La información aquí reflejada tiene un propósito única y exclusivamente <b>educativo e informativo</b>. 
-                    Bajo ninguna circunstancia este contenido debe interpretarse como asesoramiento financiero, recomendación de inversión, ni sugerencia de compra o venta de ningún activo o producto financiero. 
-                    El mercado de valores conlleva un alto riesgo y es posible perder parte o la totalidad del capital invertido. 
-                    Ni el desarrollador de esta herramienta ni instituciones asociadas se hacen responsables de las decisiones de inversión tomadas basadas en los datos proporcionados, los cuales podrían contener errores, inexactitudes o retrasos. 
-                    Por favor, consulte siempre a un asesor financiero certificado antes de tomar decisiones de inversión.
+                    La información proporcionada en este panel tiene un fin estrictamente académico, educativo e informativo, enmarcado en el análisis financiero. 
+                    <b>NO constituye asesoramiento financiero</b>, recomendación de inversión, ni solicitud para comprar o vender valores o instrumentos financieros. 
+                    El mercado de valores conlleva riesgos significativos, incluyendo la pérdida total del capital. El autor de esta herramienta y las instituciones referenciadas no se responsabilizan de las decisiones tomadas en base a estos datos automáticos.
                 </p>
-            </div>
-
-            <div class="text-center pt-6 text-xs font-mono opacity-50 mt-6 border-t border-slate-800">
-                &copy; 2026 Proyecto Analítico | Actualizado de forma automatizada mediante GitHub Actions
             </div>
         </div>
+        <div class="text-center pt-8 mt-8 border-t border-slate-800 font-mono opacity-60">
+            Generado automáticamente vía GitHub Actions | Proyecto Analítico Cuantitativo
+        </div>
     </footer>
-
 </body>
 </html>"""
     
@@ -291,35 +274,63 @@ def crear_pagina_web(mercados, macro, resumen, fecha):
         f.write(html)
 
 def enviar_telegram(config, mensaje):
-    if config["telegram_bot_token"]:
+    if config.get("telegram_bot_token") and config.get("telegram_chat_id"):
         url = f"https://api.telegram.org/bot{config['telegram_bot_token']}/sendMessage"
-        requests.post(url, json={"chat_id": config["telegram_chat_id"], "text": mensaje, "parse_mode": "HTML"})
+        payload = {
+            "chat_id": config["telegram_chat_id"], 
+            "text": mensaje, 
+            "parse_mode": "HTML",
+            "disable_web_page_preview": False
+        }
+        try:
+            requests.post(url, json=payload)
+        except Exception as e:
+            print(f"Error al enviar Telegram: {e}")
 
 def main():
     config = cargar_configuracion()
-    if not config["activo"]: return
+    if not config.get("activo", True): 
+        print("Bot pausado. Saliendo.")
+        return
     
-    mercados = MercadoDatos.obtener_metricas()
-    macro = MacroDatos.obtener_datos(config["fred_api_key"])
     fecha = datetime.now().strftime("%d/%m/%Y")
     
-    resumen = InterpreteMercado.generar_resumen_global(mercados)
-    analisis_pro = InterpreteMercado.generar_analisis_profesional(mercados, macro)
-    analisis_gen = InterpreteMercado.generar_analisis_dummies()
+    # Recolección
+    mercados = MercadoDatos.obtener_metricas()
+    macro = MacroDatos.obtener_datos(config.get("fred_api_key"))
     
-    crear_pagina_web(mercados, macro, resumen, fecha)
+    # Análisis Textual para Telegram
+    txt_pro, txt_dum = InterpreteMercado.generar_analisis_telegram(mercados, macro)
     
-    mensaje = f"<b>📊 REPORTE FEBF | {fecha}</b>\n\n{resumen}\n\n{analisis_pro}\n\n{analisis_gen}\n\n<b>📈 COTIZACIONES</b>\n"
+    # Generación de Web HTML
+    crear_pagina_web(mercados, macro, fecha)
+    
+    # Composición del Mensaje de Telegram
+    mensaje = f"📊 <b>REPORTE DE MERCADO FEBF | {fecha}</b>\n\n"
+    mensaje += f"{txt_pro}\n{txt_dum}\n"
+    
+    mensaje += "<b>📈 DATOS DESTACADOS:</b>\n"
     for c, d in mercados.items():
         emoji = "🔴" if d['variacion'] < 0 else "🟢"
         if c in ["US10Y", "VIX"]: emoji = "🔴" if d['variacion'] > 0 else "🟢"
-        pro, gen = InterpreteMercado.analizar_mercado(c, d)
-        mensaje += f"{emoji} <b>{d['nombre']}</b>: {d['precio']} ({d['variacion']}{d['unidad']})\n"
+        mensaje += f"{emoji} {d['nombre']}: {d['precio']} ({d['variacion']}{d['unidad']})\n"
         
-    mensaje += f"\n🌐 <b>Dashboard Web Completo:</b>\nhttps://{os.environ.get('GITHUB_ACTOR', 'tu-usuario')}.github.io/mercado_bot.py/"
-    mensaje += f"\n\n<i>⚠️ Aviso legal: Información con fines puramente académicos y educativos. No constituye recomendación de inversión.</i>"
+    # Obtener el nombre del repositorio dinámicamente para el enlace Web
+    repo_completo = os.environ.get('GITHUB_REPOSITORY', 'usuario/repo')
+    try:
+        usuario = repo_completo.split('/')[0]
+        nombre_repo = repo_completo.split('/')[1]
+    except:
+        usuario = "usuario"
+        nombre_repo = "repo"
+        
+    url_web = f"https://{usuario}.github.io/{nombre_repo}/"
+    
+    mensaje += f"\n🌐 <b>VER DASHBOARD COMPLETO Y EXPLICACIÓN:</b>\n{url_web}"
+    mensaje += f"\n\n<i>⚠️ Aviso legal: Información académica. No es consejo de inversión.</i>"
+    
     enviar_telegram(config, mensaje)
+    print("Ejecución finalizada con éxito.")
 
 if __name__ == "__main__":
     main()
-```
